@@ -10,9 +10,7 @@ from keras.layers import Flatten
 from keras.layers import Dropout
 from keras.layers import AveragePooling2D
 from keras.layers import Conv2D
-from keras.layers import BatchNormalization
 from keras.models import Sequential
-from keras.datasets import fashion_mnist
 from keras.callbacks import EarlyStopping
 
 # The proprocessing of digital image (especially up-scaling) is not included here.
