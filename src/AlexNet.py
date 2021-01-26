@@ -11,7 +11,7 @@ from tensorflow.nn import local_response_normalization  # LRN layer
 from keras.layers import Layer
 
 
-def AlexNet():
+def alex_net():
     """
     build and return an AlexNet model
     """
@@ -57,13 +57,13 @@ def AlexNet():
     drop = Dropout(0.5)
     fc_3 = Dense(units=1000, activation="softmax")
 
-    AlexNet = Sequential([conv_1, norm_1, pool_1, pad_1, conv_2, norm_2, pool_2,
+    alex_net = Sequential([conv_1, norm_1, pool_1, pad_1, conv_2, norm_2, pool_2,
                           pad_2, conv_3, pad_3, conv_4,  pad_4, conv_5, pool_3, flatten, fc_1, fc_2, drop, fc_3], name="AlexNet")
 
-    AlexNet.compile(optimizer="adam",
+    alex_net.compile(optimizer="adam",
                     loss="cross_entropy", metrics=["accuracy"])
-    return AlexNet
+    return alex_net
 
 
 if __name__ == "__main__":
-    AlexNet().summary()
+    alex_net().summary()

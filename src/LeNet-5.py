@@ -16,7 +16,7 @@ from keras.callbacks import EarlyStopping
 # The proprocessing of digit image is not included here.
 
 
-def LeNet_5():
+def lenet_5():
     """
     build and return a LeNet-5 model
     """
@@ -38,14 +38,14 @@ def LeNet_5():
 
     out = Dense(10, activation="softmax")
 
-    LeNet_5 = Sequential(
+    lenet_5 = Sequential(
         [C1, S2, drop, C3, S4, C5, flat, F6, out], name="LeNet-5")
 
-    LeNet_5.compile(loss='sparse_categorical_crossentropy',
+    lenet_5.compile(loss='sparse_categorical_crossentropy',
                     optimizer="sgd", metrics=["accuracy"])
 
-    return LeNet_5
+    return lenet_5
 
 
 if __name__ == "__main__":
-    LeNet_5().summary()
+    lenet_5().summary()
