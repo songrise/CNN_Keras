@@ -61,7 +61,7 @@ def alex_net():
                           pad_2, conv_3, pad_3, conv_4,  pad_4, conv_5, pool_3, flatten, fc_1, fc_2, drop, fc_3], name="AlexNet")
 
     alex_net.compile(optimizer="adam",
-                    loss="cross_entropy", metrics=["accuracy"])
+                     loss='sparse_categorical_crossentropy', metrics=["accuracy"])
     return alex_net
 
 

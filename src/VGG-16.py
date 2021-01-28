@@ -55,9 +55,8 @@ def vgg_16():
     VGG_16 = Sequential([conv_1, conv_2, pool_3, conv_4, conv_5, pool_6, conv_7,
                          conv_8, conv_9, pool_10, conv_11,  conv_12, conv_13, pool_14,
                          conv_15, conv_16, conv_17, pool_18, flat, fc_19, fc_20, out_21], name="VGG16")
-
     VGG_16.compile(optimizer="adam",
-                   loss="cross_entropy", metrics=["cross_entropy_accuracy"])
+                   loss='sparse_categorical_crossentropy', metrics=["accuracy"])
     return VGG_16
 
 

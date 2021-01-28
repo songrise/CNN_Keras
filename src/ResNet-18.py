@@ -1,37 +1,112 @@
-# """
-# ResNet-18
-# Reference:
-# """
+"""
+ResNet-18
+Reference:
+[1] K. He et al. Deep Residual Learning for Image Recognition. CVPR, 2016
+[2] K. He, X. Zhang, S. Ren, and J. Sun. Delving deep into rectifiers:
+Surpassing human-level performance on imagenet classification. In
+ICCV, 2015.
+"""
 
 
-# from keras.layers import Dense, Conv2D, Dropout, MaxPool2D, Flatten, Lambda, GlobalAveragePooling2D, concatenate, Input
-# from keras.models import Sequential
-# from tensorflow.nn import local_response_normalization  # LRN layer
-# from keras.models import Model
+from keras.callbacks import EarlyStopping
+from keras.layers import Dense, Conv2D,  MaxPool2D, Flatten, GlobalAveragePooling2D,  BatchNormalization, Layer, Add
+from keras.models import Sequential
+from keras.models import Model
+import tensorflow as tf
 
 
-# def resnet_18():
-#     """
-#     Construct and return a GoogleNet
-#     """
-#     conv_1 = Conv2D(64, kernel_size=(7, 7), padding="same",
-#                     strides=2, input_shape=[224, 224, 3], activation='relu')
-#     pool_2 = MaxPool2D(pool_size=(3, 3), padding="same", strides=2)
+class ResnetBlock(Model):
+    """
+    A standard resnet block.
+    """
 
-#     pool_19 = GlobalAveragePooling2D()
-#     drop_20 = Dropout(0.40)
-#     fc_21 = Dense(1000, activation="softmax")
+    def __init__(self, channels: int, down_sample=False):
+        """
+        channels: same as number of convolution kernels
+        """
+        super().__init__()
 
-#     model = Sequential([conv_1, pool_2, lrn_3, conv_4,
-#                         conv_5, lrn_6, pool_7, inc_8, inc_9,
-#                         pool_10, inc_11, inc_12, inc_13, inc_14,
-#                         inc_15, pool_16, inc_17, inc_18, pool_19,
-#                         drop_20, fc_21], name="GoogLeNet")
+        self.__channels = channels
+        self.__down_sample = down_sample
+        self.__strides = [2, 1] if down_sample else [1, 1]
 
-#     model.compile(optimizer="adam",
-#                   loss="cross_entropy", metrics=["cross_entropy_accuracy"])
-#     return model
+        KERNEL_SIZE = (3, 3)
+        # use He initialization, instead of Xavier (a.k.a 'glorot_uniform' in Keras), as suggested in [2]
+        INIT_SCHEME = "he_normal"
+
+        self.conv_1 = Conv2D(self.__channels, strides=self.__strides[0],
+                             kernel_size=KERNEL_SIZE, padding="same", kernel_initializer=INIT_SCHEME)
+        self.bn_1 = BatchNormalization()
+        self.conv_2 = Conv2D(self.__channels, strides=self.__strides[1],
+                             kernel_size=KERNEL_SIZE, padding="same", kernel_initializer=INIT_SCHEME)
+        self.bn_2 = BatchNormalization()
+        self.merge = Add()
+
+        if self.__down_sample:
+            # perform down sampling using stride of 2, according to [1].
+            self.res_conv = Conv2D(
+                self.__channels, strides=2, kernel_size=(1, 1), kernel_initializer=INIT_SCHEME, padding="same")
+            self.res_bn = BatchNormalization()
+
+    def call(self, inputs):
+        res = inputs
+
+        x = self.conv_1(inputs)
+        x = self.bn_1(x)
+        x = tf.nn.relu(x)
+        x = self.conv_2(x)
+        x = self.bn_2(x)
+
+        if self.__down_sample:
+            res = self.res_conv(res)
+            res = self.res_bn(res)
+
+        # if not perform down sample, then add a shortcut directly
+        x = self.merge([x, res])
+        out = tf.nn.relu(x)
+        return out
 
 
-# if __name__ == "__main__":
-#     resnet_18().summary()
+class ResNet18(Model):
+
+    def __init__(self, num_classes, **kwargs):
+        """
+            num_classes: number of classes in specific classification task.
+        """
+        super().__init__(**kwargs)
+        self.conv_1 = Conv2D(64, (7, 7), strides=2,
+                             padding="same", kernel_initializer="he_normal")
+        self.init_bn = BatchNormalization()
+        self.pool_2 = MaxPool2D(pool_size=(2, 2), strides=2, padding="same")
+        self.res_1_1 = ResnetBlock(64)
+        self.res_1_2 = ResnetBlock(64)
+        self.res_2_1 = ResnetBlock(128, down_sample=True)
+        self.res_2_2 = ResnetBlock(128)
+        self.res_3_1 = ResnetBlock(256, down_sample=True)
+        self.res_3_2 = ResnetBlock(256)
+        self.res_4_1 = ResnetBlock(512, down_sample=True)
+        self.res_4_2 = ResnetBlock(512)
+        self.avg_pool = GlobalAveragePooling2D()
+        self.flat = Flatten()
+        self.fc = Dense(num_classes, activation="softmax")
+
+    def call(self, inputs):
+        out = self.conv_1(inputs)
+        out = self.init_bn(out)
+        out = tf.nn.relu(out)
+        out = self.pool_2(out)
+        for res_block in [self.res_1_1, self.res_1_2, self.res_2_1, self.res_2_2, self.res_3_1, self.res_3_2, self.res_4_1, self.res_4_2]:
+            out = res_block(out)
+        out = self.avg_pool(out)
+        out = self.flat(out)
+        out = self.fc(out)
+        return out
+
+
+if __name__ == "__main__":
+    # suppose training on an Imagenet-like dataset
+    model = ResNet18(1000)
+    model.build(input_shape=(None, 227, 227, 3))
+    model.compile(optimizer="adam",
+                  loss='categorical_crossentropy', metrics=["accuracy"])
+    model.summary()

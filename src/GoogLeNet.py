@@ -86,7 +86,7 @@ def google_net():
                         drop_20, fc_21], name="GoogLeNet")
 
     model.compile(optimizer="adam",
-                  loss="cross_entropy", metrics=["cross_entropy_accuracy"])
+                  loss='sparse_categorical_crossentropy', metrics=["accuracy"])
     return model
 
 
